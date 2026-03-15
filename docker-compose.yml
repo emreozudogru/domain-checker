@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  domain-monitor:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: domain-monitor
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      # This binds the configuration to act as a single source of truth allowing safe changes offline.
+      # The `:ro` limits the container to read-only access.
+      - ./domains.json:/app/domains.json:ro

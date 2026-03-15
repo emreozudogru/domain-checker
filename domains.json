@@ -1,0 +1,17 @@
+{
+  "domains": [
+    "example.com",
+    "golang.org",
+    "kubernetes.io",
+    "nic.us",
+    "nic.tr"
+  ],
+  "enable_email_alerts": false,
+  "smtp_config": {
+    "host": "smtp.example.com",
+    "port": 587,
+    "user": "alert@example.com",
+    "pass": "secret",
+    "to": "admin@example.com"
+  }
+}

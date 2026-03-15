@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Domain Expiry Monitor</title>
+    <style>
+        :root {
+            /* Minimalist Dark Mode Theme Variables */
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+            --card-bg: #1e1e1e;
+            --ok-color: #2e7d32;
+            --warning-color: #f57f17;
+            --error-color: #c62828;
+            --border-color: #333;
+        }
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            /* No heavy frameworks, pure vanilla CSS */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+        header {
+            max-width: 1200px;
+            width: 100%;
+            margin-bottom: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        h1 {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        p.subtitle {
+            color: #888;
+            font-size: 0.95rem;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+            width: 100%;
+            max-width: 1200px;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            padding: 1.5rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+        }
+        .domain-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            word-break: break-all;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .stat-field {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+            font-size: 0.95rem;
+        }
+        .stat-field:last-child {
+            margin-bottom: 0;
+        }
+        .stat-label {
+            color: #aaa;
+        }
+        .stat-value {
+            font-weight: 500;
+        }
+        .badge {
+            padding: 0.35rem 0.65rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        /* Visual Status Indicators */
+        .status-ok { 
+            background-color: rgba(46, 125, 50, 0.15); 
+            border: 1px solid var(--ok-color); 
+            color: #81c784; 
+        }
+        .status-warning { 
+            background-color: rgba(245, 127, 23, 0.15); 
+            border: 1px solid var(--warning-color); 
+            color: #fff59d; 
+        }
+        .status-expired { 
+            background-color: rgba(198, 40, 40, 0.15); 
+            border: 1px solid var(--error-color); 
+            color: #ef9a9a; 
+        }
+        .status-error { 
+            background-color: rgba(97, 97, 97, 0.15); 
+            border: 1px solid #757575; 
+            color: #bdbdbd; 
+        }
+        .error-msg {
+            color: #ef9a9a;
+            font-size: 0.85rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px dashed var(--border-color);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Domain Expiry Monitor</h1>
+        <p class="subtitle">Read-only view dynamically loaded from <code>domains.json</code> source of truth.</p>
+    </header>
+    
+    <div class="grid" id="domain-grid">
+        <p>Loading domains...</p>
+    </div>
+
+    <script>
+        async function fetchDomains() {
+            try {
+                // Fetch dynamically using pure Vanilla JavaScript avoiding framework overhead
+                const res = await fetch('/api/domains');
+                const domains = await res.json();
+                
+                const grid = document.getElementById('domain-grid');
+                grid.innerHTML = '';
+                
+                // Sort by least days remaining first for immediate visibility of expiring domains
+                domains.sort((a, b) => a.days_remaining - b.days_remaining);
+
+                domains.forEach(d => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    
+                    let statusClass = 'status-error';
+                    if (d.status === 'ok') statusClass = 'status-ok';
+                    else if (d.status === 'warning') statusClass = 'status-warning';
+                    else if (d.status === 'expired') statusClass = 'status-expired';
+
+                    let errorHtml = d.error_msg ? `<div class="error-msg">${d.error_msg}</div>` : '';
+
+                    card.innerHTML = `
+                        <div class="domain-name">
+                            <span>${d.domain}</span>
+                            <span class="badge ${statusClass}">${d.status}</span>
+                        </div>
+                        <div class="stat-field">
+                            <span class="stat-label">Expires On:</span> 
+                            <span class="stat-value">${d.expiry_date || 'N/A'}</span>
+                        </div>
+                        <div class="stat-field">
+                            <span class="stat-label">Days Left:</span> 
+                            <span class="stat-value">${d.days_remaining !== 0 || d.expiry_date ? d.days_remaining : 'N/A'}</span>
+                        </div>
+                        ${errorHtml}
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (err) {
+                console.error(err);
+                document.getElementById('domain-grid').innerHTML = '<p>Error loading data.</p>';
+            }
+        }
+
+        // Run immediately on load and set up interval polling for background updates
+        fetchDomains();
+        setInterval(fetchDomains, 60000); // 1 minute UI refresh
+    </script>
+</body>
+</html>
