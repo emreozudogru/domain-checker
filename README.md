@@ -30,31 +30,26 @@ Edit or mount `domains.json` to define your domain watch-list:
 }
 ```
 
-## Arcane Docker UI Instructions (CRITICAL)
+## Arcane App (getarcane.app) Deployment Instructions (CRITICAL)
 
-Follow these exact steps to deploy this repository flawlessly onto your Raspberry Pi 5 via Arcane Docker UI:
+[Arcane](https://getarcane.app/) is a modern, lightweight Docker client and management UI. To run this project using Arcane, follow these steps:
 
-### 1. Connecting and Pulling the Repository
-- Open your **Arcane Docker UI** dashboard.
-- Navigate to the **Apps** or **Stacks** view section depending on your Arcane version.
-- Select **Deploy from Repository** or **Add New Git Repository**.
-- Input the **URL of this Git repository** and provide credentials if it's a private repository. 
-- Wait for Arcane to index the files and locate the provided `docker-compose.yml` file gracefully.
+### 1. Connecting to the Project
+- Clone or download this Git repository to your local machine (or wherever your Arcane environment is running).
+- Ensure the `domains.json` file is present in the root of the project folder alongside `docker-compose.yml`.
 
-### 2. Configuring the Deployment / Stack
-- Select the option to **Deploy via Compose**. Arcane natively respects the lightweight settings predefined in `docker-compose.yml`.
-- (Optional) Toggle **Enable Automatic Updates** if you plan to update the `domains.json` list directly via remote Git commits.
-- Set the **Stack Name** to `domain-monitor` (or anything intuitive).
-- Review the predefined environment. Port `8080` is automatically exposed to your host system allowing UI access.
+### 2. Configuring the Deployment
+- Open **Arcane** and navigate to its environment dashboard.
+- If Arcane supports direct project import, add the `domain-checker` folder as a new Compose project. 
+- Alternatively, you can run `docker-compose up -d --build` in your terminal from the project folder, and Arcane will automatically detect and manage the `domain-monitor` stack in its UI.
+- Port `8080` will be exposed to your local network, making the Domain Monitor dashboard accessible at `http://localhost:8080`.
 
-### 3. Mounting the external `domains.json` File Natively in Arcane
-To ensure the UI remains strictly read-only and uses minimal resources, domains are configured externally using Arcane's volume features:
-1. Inside the Arcane compose deployment configuration, locate the **Volumes** or **Mounts** list for the `domain-monitor` service.
-2. The template currently states `./domains.json:/app/domains.json:ro`. 
-3. **If you are bypassing the git copy of domains.json:** Create a file directly on your Raspberry Pi host OS (e.g., `/home/pi/domains.json`).
-4. In Arcane UI's Mounts Interface, map the **Host Path** (e.g., `/home/pi/domains.json`) directly to the **Container Path** `/app/domains.json`.
-5. Ensure the Mode toggle is explicitly set to **Read-Only (ro)** to prevent any accidental overwrites.
-6. Click **Deploy Stack**. The builder script inside `Dockerfile` will automatically compile an ARM64 binary and discard all compilation tools, leaving an empty `scratch` environment for runtime.
+### 3. Mounting the external `domains.json` File
+This structure ensures the `domains.json` file acts as the single source of truth without being baked into the image.
+1. The `docker-compose.yml` is already configured to mount `./domains.json` to `/app/domains.json:ro`. 
+2. Because it uses a relative path (`./domains.json`), Arcane will successfully bind the file from your local repository folder directly into the container.
+3. The `:ro` (read-only) flag ensures the container cannot accidentally overwrite or modify your local configuration file.
+4. To add or remove domains, simply open the local `domains.json` file in any text editor, save your changes, and the background ticker will detect the new domains on its next cycle (or you can restart the container via the Arcane UI to force an immediate update).
 
 ## Open-Source Tech Stack & Licensing Requirements
 
